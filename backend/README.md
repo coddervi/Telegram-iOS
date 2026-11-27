@@ -44,6 +44,7 @@ All API responses are JSON unless the response is `204 No Content`.
 - `POST /v1/gifts/ownership/{ownershipID}/upgrade` — upgrade a gift level (server-configured cost)
 - `POST /v1/admin/wallet/adjust` — administrator credit/debit (requires `Idempotency-Key`)
 - `POST /v1/admin/gifts` — create a gift definition
+- `POST /v1/admin/gifts/issue` — issue a gift directly to a user (requires `Idempotency-Key`)
 
 Authenticated routes require `Authorization: Bearer <token>`.
 
