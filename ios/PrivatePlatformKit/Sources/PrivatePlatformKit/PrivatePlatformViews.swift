@@ -102,6 +102,20 @@ public final class PrivatePlatformStore: ObservableObject {
             await refresh()
         } catch { errorMessage = error.localizedDescription }
     }
+
+    public func adminAdjustStars(userID: String, amount: Int64, reason: String, note: String) async {
+        do {
+            _ = try await client.adjustStars(userID: userID, amount: amount, reason: reason, note: note)
+            await refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    public func adminCreateGift(code: String, title: String, rarity: String, price: Int64, upgradeCost: Int64, maxLevel: Int, maxSupply: Int64?) async {
+        do {
+            _ = try await client.createGift(code: code, title: title, description: "", rarity: rarity, priceStars: price, upgradeCostStars: upgradeCost, maxLevel: maxLevel, maxSupply: maxSupply)
+            await refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
 }
 
 public struct PrivatePlatformRootView: View {
@@ -393,11 +407,81 @@ private struct PrivatePlatformProfileView: View {
                     LabeledContent("Username", value: "@\(store.user?.username ?? "")")
                     LabeledContent("Role", value: store.user?.role ?? "user")
                 }
+                if store.user?.role == "admin" {
+                    Section("Administration") {
+                        NavigationLink("Admin panel") {
+                            PrivatePlatformAdminView(store: store)
+                        }
+                    }
+                }
                 Section {
                     Button("Sign out", role: .destructive) { Task { await store.logout() } }
                 }
             }
             .navigationTitle("Profile")
         }
+    }
+}
+
+
+private struct PrivatePlatformAdminView: View {
+    @ObservedObject var store: PrivatePlatformStore
+    @State private var targetUserID = ""
+    @State private var amount = "100"
+    @State private var reason = "admin_credit"
+    @State private var note = ""
+    @State private var giftCode = ""
+    @State private var giftTitle = ""
+    @State private var rarity = "common"
+    @State private var price = "100"
+    @State private var upgradeCost = "100"
+    @State private var maxLevel = "5"
+    @State private var maxSupply = ""
+
+    var body: some View {
+        Form {
+            Section("Credit / debit internal Stars") {
+                TextField("User ID", text: $targetUserID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("Amount (+/-)", text: $amount)
+                    .keyboardType(.numbersAndPunctuation)
+                TextField("Reason", text: $reason)
+                TextField("Audit note", text: $note)
+                Button("Apply balance change") {
+                    guard let value = Int64(amount), !targetUserID.isEmpty else { return }
+                    Task { await store.adminAdjustStars(userID: targetUserID, amount: value, reason: reason, note: note) }
+                }
+                .disabled(Int64(amount) == nil || targetUserID.isEmpty || Int64(amount) == 0)
+            }
+            Section("Create gift") {
+                TextField("Gift code", text: $giftCode)
+                    .textInputAutocapitalization(.never)
+                TextField("Gift title", text: $giftTitle)
+                Picker("Rarity", selection: $rarity) {
+                    ForEach(["common", "uncommon", "rare", "epic", "legendary"], id: \.self) { Text($0.capitalized).tag($0) }
+                }
+                TextField("Price in Stars", text: $price).keyboardType(.numberPad)
+                TextField("Upgrade cost", text: $upgradeCost).keyboardType(.numberPad)
+                TextField("Maximum level", text: $maxLevel).keyboardType(.numberPad)
+                TextField("Supply cap (empty = unlimited)", text: $maxSupply).keyboardType(.numberPad)
+                Button("Publish gift") {
+                    guard let priceValue = Int64(price),
+                          let upgradeValue = Int64(upgradeCost),
+                          let levelValue = Int(maxLevel),
+                          maxSupply.isEmpty || Int64(maxSupply) != nil,
+                          !giftCode.isEmpty, !giftTitle.isEmpty else { return }
+                    Task {
+                        await store.adminCreateGift(
+                            code: giftCode, title: giftTitle, rarity: rarity,
+                            price: priceValue, upgradeCost: upgradeValue,
+                            maxLevel: levelValue, maxSupply: Int64(maxSupply)
+                        )
+                    }
+                }
+                .disabled(giftCode.isEmpty || giftTitle.isEmpty || Int64(price) == nil || Int64(upgradeCost) == nil || Int(maxLevel) == nil)
+            }
+        }
+        .navigationTitle("Admin panel")
     }
 }
