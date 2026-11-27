@@ -36,8 +36,10 @@ services:
       APP_ENV: production
       DATABASE_URL: postgres://private_platform:${POSTGRES_PASSWORD}@postgres:5432/private_platform?sslmode=disable
       MEDIA_DIR: /data/media
+    # Keep the API bound to loopback. Cloudflare Tunnel reaches it locally;
+    # the API port is not exposed directly to the LAN or public internet.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - media_data:/data/media
     depends_on:
