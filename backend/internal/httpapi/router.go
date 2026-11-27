@@ -10,7 +10,7 @@ import (
 type healthResponse struct { Status string `json:"status"`; Service string `json:"service"`; Time string `json:"time"` }
 func NewRouter(db *pgxpool.Pool, mediaDir string, telegram ...string) http.Handler {
  token,secret:="","";if len(telegram)>0{token=telegram[0]};if len(telegram)>1{secret=telegram[1]}
- mux:=http.NewServeMux();auth:=authHandler{db:db};bot:=telegramBotHandler{db:db,token:token,secret:secret};registration:=registrationHandler{db:db,bot:bot}
+ mux:=http.NewServeMux();auth:=authHandler{db:db};bot:=telegramBotHandler{db:db,token:token,secret:secret};registration:=registrationHandler{db:db,bot:bot,development:len(telegram)>2 && telegram[2]!="production"}
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){if err:=db.Ping(r.Context());err!=nil{writeJSON(w,503,map[string]string{"status":"unavailable"});return};writeJSON(w,200,healthResponse{Status:"ok",Service:"private-platform-api",Time:time.Now().UTC().Format(time.RFC3339)})})
  mux.HandleFunc("GET /v1",func(w http.ResponseWriter,r *http.Request){writeJSON(w,200,map[string]string{"name":"Private Platform API","version":"0.3.0","status":"development"})})
  mux.HandleFunc("POST /v1/telegram/webhook",bot.webhook)
