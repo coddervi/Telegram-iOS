@@ -350,6 +350,14 @@ public actor PrivatePlatformClient {
         return try await request("POST", path: "/v1/admin/gifts", body: payload)
     }
 
+    public func issueGift(giftID: String, userID: String, idempotencyKey: String = UUID().uuidString) async throws -> AdminGiftIssueResult {
+        try await request(
+            "POST", path: "/v1/admin/gifts/issue",
+            body: ["gift_id": giftID, "user_id": userID],
+            idempotencyKey: idempotencyKey
+        )
+    }
+
     private func request<Response: Decodable>(
         _ method: String,
         path: String,
@@ -396,7 +404,7 @@ private struct ConversationList: Decodable { let conversations: [PlatformConvers
 private struct MessageList: Decodable { let messages: [PlatformMessage] }
 private struct GiftList: Decodable { let gifts: [PlatformGift] }
 private struct GiftInventory: Decodable { let items: [GiftInventoryItem] }
-public struct AdminWalletAdjustment: Decodable, Sendable {\n    public let userID: String\n    public let balance: Int64\n    enum CodingKeys: String, CodingKey { case balance; case userID = "user_id" }\n}\nprivate struct UpgradeResponse: Decodable {
+public struct AdminGiftIssueResult: Decodable, Sendable {\n    public let ownershipID: String\n    public let giftID: String\n    public let userID: String\n    public let serialNumber: Int64\n    public let level: Int\n    enum CodingKeys: String, CodingKey { case level; case ownershipID = "ownership_id"; case giftID = "gift_id"; case userID = "user_id"; case serialNumber = "serial_number" }\n}\n\npublic struct AdminWalletAdjustment: Decodable, Sendable {\n    public let userID: String\n    public let balance: Int64\n    enum CodingKeys: String, CodingKey { case balance; case userID = "user_id" }\n}\nprivate struct UpgradeResponse: Decodable {
     let ownershipID: String
     let level: Int
     let upgradeCost: Int64
