@@ -400,6 +400,7 @@ swift_library(
         ":GeneratedPresentationStrings/Resources/PresentationStrings.data",
     ],
     deps = [
+        "//ios/PrivatePlatformKit:PrivatePlatformKit",
         "//submodules/TelegramUI:TelegramUI",
         "//third-party/boringssl:crypto",
     ],
