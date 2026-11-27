@@ -79,6 +79,6 @@ func (h messagingHandler) sendMessage(w http.ResponseWriter,r *http.Request) {
 		if attachErr!=nil||tag.RowsAffected()!=1 {writeError(w,http.StatusBadRequest,"media_not_found_or_not_owned");return}
 	}
 	if err=tx.Commit(r.Context());err!=nil {writeError(w,http.StatusInternalServerError,"message_send_failed");return}
-	m.MediaIDs=req.MediaIDs
+	m.MediaIDs=append([]string{},req.MediaIDs...)
 	writeJSON(w,http.StatusCreated,m)
 }
