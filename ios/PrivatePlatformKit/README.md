@@ -26,7 +26,7 @@ let store = PrivatePlatformStore(client: api)
 PrivatePlatformRootView(store: store)
 ```
 
-The sample root view includes account registration/login, chat list, direct-chat user search, text messaging, internal Stars balance, gift catalog, inventory and gift upgrades. Accounts with the server-side `admin` role also see an admin screen for Stars adjustments and gift publishing.
+The sample root view includes account registration/login, chat list, direct-chat user search, text messaging with photo attachments, internal Stars balance, gift catalog, inventory, gift upgrades and a basic admin panel for issuing gifts and adjusting Stars. Accounts with the server-side `admin` role also see an admin screen for Stars adjustments and gift publishing.
 
 Session tokens are persisted in the iOS Keychain. Do not ship a development HTTP endpoint or database credentials in the app. Use HTTPS in production.
 
