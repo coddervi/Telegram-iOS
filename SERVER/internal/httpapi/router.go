@@ -1,0 +1,29 @@
+package httpapi
+
+import (
+ "encoding/json"
+ "net/http"
+ "time"
+ "github.com/jackc/pgx/v5/pgxpool"
+)
+
+type healthResponse struct { Status string `json:"status"`; Service string `json:"service"`; Time string `json:"time"` }
+func NewRouter(db *pgxpool.Pool, mediaDir string, telegram ...string) http.Handler {
+ token,secret:="","";if len(telegram)>0{token=telegram[0]};if len(telegram)>1{secret=telegram[1]}
+ mux:=http.NewServeMux();auth:=authHandler{db:db};bot:=telegramBotHandler{db:db,token:token,secret:secret};registration:=registrationHandler{db:db,bot:bot}
+ mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){if err:=db.Ping(r.Context());err!=nil{writeJSON(w,503,map[string]string{"status":"unavailable"});return};writeJSON(w,200,healthResponse{Status:"ok",Service:"private-platform-api",Time:time.Now().UTC().Format(time.RFC3339)})})
+ mux.HandleFunc("GET /v1",func(w http.ResponseWriter,r *http.Request){writeJSON(w,200,map[string]string{"name":"Private Platform API","version":"0.3.0","status":"development"})})
+ mux.HandleFunc("POST /v1/telegram/webhook",bot.webhook)
+ mux.HandleFunc("POST /v1/auth/register",auth.register);mux.HandleFunc("POST /v1/auth/login",auth.login)
+ mux.HandleFunc("POST /v1/auth/request-code",registration.requestCode);mux.HandleFunc("POST /v1/auth/verify-code",registration.verifyCode)
+ mux.Handle("GET /v1/auth/me",auth.requireAuth(http.HandlerFunc(auth.me)));mux.Handle("POST /v1/auth/logout",auth.requireAuth(http.HandlerFunc(auth.logout)))
+ economy:=economyHandler{db:db};mux.Handle("GET /v1/wallet",auth.requireAuth(http.HandlerFunc(economy.wallet)));mux.HandleFunc("GET /v1/gifts",economy.listGifts)
+ mux.Handle("POST /v1/gifts/{giftID}/purchase",auth.requireAuth(http.HandlerFunc(economy.purchaseGift)));mux.Handle("GET /v1/gifts/inventory",auth.requireAuth(http.HandlerFunc(economy.inventory)));mux.Handle("POST /v1/gifts/ownership/{ownershipID}/transfer",auth.requireAuth(http.HandlerFunc(economy.transferGift)));mux.Handle("POST /v1/gifts/ownership/{ownershipID}/upgrade",auth.requireAuth(http.HandlerFunc(economy.upgradeGift)))
+ mux.Handle("POST /v1/admin/wallet/adjust",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.adjustWallet))));mux.Handle("POST /v1/admin/gifts",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.createGift))));mux.Handle("POST /v1/admin/gifts/issue",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.adminIssueGift))))
+ users:=usersHandler{db:db};mux.Handle("GET /v1/users/search",auth.requireAuth(http.HandlerFunc(users.search)))
+ messaging:=messagingHandler{db:db};mux.Handle("POST /v1/conversations",auth.requireAuth(http.HandlerFunc(messaging.createConversation)));mux.Handle("GET /v1/conversations",auth.requireAuth(http.HandlerFunc(messaging.listConversations)));mux.Handle("GET /v1/conversations/{conversationID}/messages",auth.requireAuth(http.HandlerFunc(messaging.listMessages)));mux.Handle("POST /v1/conversations/{conversationID}/messages",auth.requireAuth(http.HandlerFunc(messaging.sendMessage)))
+ media:=mediaHandler{db:db,root:mediaDir};mux.Handle("POST /v1/media",auth.requireAuth(http.HandlerFunc(media.upload)));mux.Handle("GET /v1/media/{mediaID}",auth.requireAuth(http.HandlerFunc(media.download)))
+ return securityHeaders(mux)
+}
+func securityHeaders(next http.Handler)http.Handler{return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){w.Header().Set("X-Content-Type-Options","nosniff");w.Header().Set("X-Frame-Options","DENY");w.Header().Set("Referrer-Policy","no-referrer");w.Header().Set("Cache-Control","no-store");next.ServeHTTP(w,r)})}
+func writeJSON(w http.ResponseWriter,status int,value any){w.Header().Set("Content-Type","application/json; charset=utf-8");w.WriteHeader(status);_ = json.NewEncoder(w).Encode(value)}
