@@ -255,7 +255,9 @@ public actor PrivatePlatformClient {
     }
 
     public func searchUsers(query: String) async throws -> [PlatformUser] {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&=+#")
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: allowed) ?? query
         let result: UserList = try await request("GET", path: "/v1/users/search?q=\(encoded)")
         return result.users
     }
