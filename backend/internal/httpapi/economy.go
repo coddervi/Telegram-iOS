@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type economyHandler struct { db *pgxpool.Pool }
