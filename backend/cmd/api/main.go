@@ -25,7 +25,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:cfg.HTTPAddr,
-		Handler:httpapi.NewRouter(db),
+		Handler:httpapi.NewRouter(db,cfg.MediaDir),
 		ReadHeaderTimeout:5*time.Second,
 		ReadTimeout:15*time.Second,
 		WriteTimeout:30*time.Second,
