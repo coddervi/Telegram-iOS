@@ -6,13 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -134,11 +133,8 @@ func newSessionToken() (string,[]byte,error) {
 }
 func decodeJSON(r *http.Request,dst any) error {
 	defer r.Body.Close()
-	decoder := json.NewDecoder(http.MaxBytesReader(nil,r.Body,1<<20))
+	decoder := json.NewDecoder(io.LimitReader(r.Body,1<<20))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(dst)
 }
 func writeError(w http.ResponseWriter,status int,code string) { writeJSON(w,status,map[string]string{"error":code}) }
-
-var _ = pgx.ErrNoRows
-var _ = errors.New
