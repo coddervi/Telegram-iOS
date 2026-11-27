@@ -1,31 +1,44 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"privategram/backend/internal/config"
 	"privategram/backend/internal/httpapi"
+	"privategram/backend/internal/store"
 )
 
 func main() {
-	addr := os.Getenv("HTTP_ADDR")
-	if addr == "" {
-		addr = ":8080"
-	}
+	cfg, err := config.Load()
+	if err != nil { log.Fatal(err) }
+	ctx := context.Background()
+	db, err := store.Open(ctx,cfg.DatabaseURL)
+	if err != nil { log.Fatal(err) }
+	defer db.Close()
 
 	server := &http.Server{
-		Addr:              addr,
-		Handler:           httpapi.NewRouter(),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		Addr:cfg.HTTPAddr,
+		Handler:httpapi.NewRouter(db),
+		ReadHeaderTimeout:5*time.Second,
+		ReadTimeout:15*time.Second,
+		WriteTimeout:30*time.Second,
+		IdleTimeout:60*time.Second,
 	}
-
-	log.Printf("private platform API listening on %s", addr)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
+	go func() {
+		log.Printf("private platform API listening on %s",cfg.HTTPAddr)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err,http.ErrServerClosed) { log.Printf("http server: %v",err) }
+	}()
+	stop := make(chan os.Signal,1)
+	signal.Notify(stop,syscall.SIGINT,syscall.SIGTERM)
+	<-stop
+	shutdownCtx,cancel := context.WithTimeout(context.Background(),10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil { log.Printf("shutdown: %v",err) }
 }
