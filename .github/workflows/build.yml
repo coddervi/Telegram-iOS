@@ -65,6 +65,7 @@ jobs:
           for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
             cp "$f" $OUTPUT_PATH/
           done
+          mv "$OUTPUT_PATH/Telegram.ipa" "$OUTPUT_PATH/XGRAM.ipa"
 
           # collect dsym
           mkdir -p build/DSYMs
@@ -72,6 +73,13 @@ jobs:
             cp -R "$f" build/DSYMs/
           done
           zip -r "./$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs 1>/dev/null
+
+      - name: Upload XGRAM IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XGRAM-IPA
+          path: build/artifacts/XGRAM.ipa
+          if-no-files-found: error
 
       - name: Create Release
         id: create_release
@@ -93,8 +101,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.ipa
-          asset_name: Telegram.ipa
+          asset_path: /Users/Shared/telegram-ios/build/artifacts/XGRAM.ipa
+          asset_name: XGRAM.ipa
           asset_content_type: application/zip
 
       - name: Upload Release DSYM
