@@ -223,6 +223,18 @@ public final class KeychainTokenStore: PlatformTokenStore, @unchecked Sendable {
     }
 }
 
+public struct PlatformHealth: Decodable, Sendable {
+    public let status: String
+    public let service: String
+    public let time: String
+}
+
+/// Development-only address for the user's LAN server.
+/// Replace it with an HTTPS endpoint before distributing the app.
+public enum PrivatePlatformConfiguration {
+    public static let localDevelopmentBaseURL = URL(string: "http://192.168.1.74:8080")!
+}
+
 public actor PrivatePlatformClient {
     private let baseURL: URL
     private let session: URLSession
@@ -237,6 +249,10 @@ public actor PrivatePlatformClient {
         self.baseURL = baseURL
         self.session = session
         self.tokenStore = tokenStore
+    }
+
+    public func health() async throws -> PlatformHealth {
+        try await request("GET", path: "/health", authenticated: false)
     }
 
     public func register(username: String, password: String, displayName: String) async throws -> AuthSession {
@@ -293,9 +309,15 @@ public actor PrivatePlatformClient {
         return result.messages
     }
 
-    public func sendMessage(_ body: String, conversationID: String, replyTo: String? = nil) async throws -> PlatformMessage {
+    public func sendMessage(
+        _ body: String,
+        conversationID: String,
+        replyTo: String? = nil,
+        mediaIDs: [String] = []
+    ) async throws -> PlatformMessage {
         var payload: [String: Any] = ["body": body]
         if let replyTo { payload["reply_to"] = replyTo }
+        if !mediaIDs.isEmpty { payload["media_ids"] = mediaIDs }
         return try await request("POST", path: "/v1/conversations/\(conversationID)/messages", body: payload)
     }
 
