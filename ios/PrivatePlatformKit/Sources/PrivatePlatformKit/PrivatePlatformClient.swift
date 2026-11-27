@@ -116,7 +116,19 @@ public struct GiftInventoryItem: Codable, Sendable, Identifiable {
     }
 }
 
-public struct UploadedMedia: Decodable, Sendable {\n    public let id: String\n    public let contentType: String\n    public let sizeBytes: Int64\n    enum CodingKeys: String, CodingKey { case id; case contentType = "content_type"; case sizeBytes = "size_bytes" }\n}\n\npublic struct GiftPurchaseResult: Codable, Sendable {
+public struct UploadedMedia: Decodable, Sendable {
+    public let id: String
+    public let contentType: String
+    public let sizeBytes: Int64
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case contentType = "content_type"
+        case sizeBytes = "size_bytes"
+    }
+}
+
+public struct GiftPurchaseResult: Codable, Sendable {
     public let giftID: String
     public let serialNumber: Int64
     public let level: Int
@@ -285,7 +297,7 @@ public actor PrivatePlatformClient {
         return try await request("POST", path: "/v1/conversations/\(conversationID)/messages", body: payload)
     }
 
-    public func uploadMedia(data: Data, fileName: String = "upload", mimeType: String = "application/octet-stream") async throws -> UploadedMedia {
+    public func uploadMedia(data: Data, mimeType: String = "application/octet-stream") async throws -> UploadedMedia {
         guard let url = URL(string: "/v1/media", relativeTo: baseURL)?.absoluteURL else {
             throw PrivatePlatformError.invalidBaseURL
         }
