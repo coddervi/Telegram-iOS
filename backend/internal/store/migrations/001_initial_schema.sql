@@ -63,6 +63,11 @@ CREATE TABLE media_objects (
     size_bytes BIGINT NOT NULL CHECK (size_bytes >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE message_media (
+    message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    media_id UUID NOT NULL REFERENCES media_objects(id) ON DELETE CASCADE,
+    PRIMARY KEY (message_id,media_id)
+);
 
 CREATE TABLE wallet_accounts (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
