@@ -5,7 +5,7 @@ public struct PlatformUser: Codable, Sendable, Equatable {
     public let id: String
     public let username: String
     public let displayName: String
-    public let role: String
+    public let role: String?
 
     enum CodingKeys: String, CodingKey {
         case id, username, role
@@ -213,7 +213,6 @@ public actor PrivatePlatformClient {
     private let baseURL: URL
     private let session: URLSession
     private let tokenStore: any PlatformTokenStore
-    private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     public init(
