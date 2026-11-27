@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 @MainActor
 public final class PrivatePlatformStore: ObservableObject {
@@ -9,6 +11,7 @@ public final class PrivatePlatformStore: ObservableObject {
     @Published public private(set) var gifts: [PlatformGift] = []
     @Published public private(set) var inventory: [GiftInventoryItem] = []
     @Published public private(set) var searchResults: [PlatformUser] = []
+    @Published public private(set) var mediaData: [String: Data] = [:]
     @Published public var errorMessage: String?
 
     public let client: PrivatePlatformClient
@@ -78,14 +81,27 @@ public final class PrivatePlatformStore: ObservableObject {
     }
 
     public func loadMessages(for conversation: PlatformConversation) async {
-        do { messages[conversation.id] = try await client.messages(conversationID: conversation.id) }
-        catch { errorMessage = error.localizedDescription }
+        do {
+            let loaded = try await client.messages(conversationID: conversation.id)
+            messages[conversation.id] = loaded
+            for mediaID in loaded.flatMap(\.mediaIDs) where mediaData[mediaID] == nil {
+                if let data = try? await client.downloadMedia(id: mediaID) { mediaData[mediaID] = data }
+            }
+        } catch { errorMessage = error.localizedDescription }
     }
 
-    public func send(_ text: String, to conversation: PlatformConversation) async {
+    public func send(_ text: String, mediaData: Data? = nil, to conversation: PlatformConversation) async {
         do {
-            _ = try await client.sendMessage(text, conversationID: conversation.id)
+            var mediaIDs: [String] = []
+            if let mediaData {
+                let uploaded = try await client.uploadMedia(data: mediaData)
+                mediaIDs.append(uploaded.id)
+            }
+            _ = try await client.sendMessage(text, conversationID: conversation.id, mediaIDs: mediaIDs)
             messages[conversation.id] = try await client.messages(conversationID: conversation.id)
+            for mediaID in mediaIDs {
+                if let data = try? await client.downloadMedia(id: mediaID) { self.mediaData[mediaID] = data }
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -275,6 +291,8 @@ private struct PrivatePlatformConversationView: View {
     @ObservedObject var store: PrivatePlatformStore
     let conversation: PlatformConversation
     @State private var draft = ""
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPhotoData: Data?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -284,9 +302,23 @@ private struct PrivatePlatformConversationView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(message.senderID == store.user?.id ? "You" : message.senderID)
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text(message.body)
-                                .padding(10)
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            if !message.body.isEmpty {
+                                Text(message.body)
+                                    .padding(10)
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                            ForEach(message.mediaIDs, id: \.self) { mediaID in
+                                if let data = store.mediaData[mediaID], let image = UIImage(data: data) {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxWidth: 240, maxHeight: 280)
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                                } else {
+                                    Label("Attachment", systemImage: "paperclip")
+                                        .font(.caption)
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -294,20 +326,29 @@ private struct PrivatePlatformConversationView: View {
                 .padding()
             }
             HStack {
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Image(systemName: "paperclip")
+                }
                 TextField("Message", text: $draft, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                 Button {
                     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !text.isEmpty else { return }
+                    guard !text.isEmpty || selectedPhotoData != nil else { return }
+                    let attachment = selectedPhotoData
                     draft = ""
-                    Task { await store.send(text, to: conversation) }
+                    selectedPhotoData = nil
+                    selectedPhoto = nil
+                    Task { await store.send(text, mediaData: attachment, to: conversation) }
                 } label: { Image(systemName: "arrow.up.circle.fill").font(.title2) }
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedPhotoData == nil)
             }
             .padding()
         }
         .navigationTitle(conversation.title ?? "Conversation")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: selectedPhoto) { item in
+            Task { selectedPhotoData = try? await item?.loadTransferable(type: Data.self) }
+        }
         .task { await store.loadMessages(for: conversation) }
     }
 }
