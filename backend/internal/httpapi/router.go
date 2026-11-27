@@ -29,6 +29,12 @@ func NewRouter(db *pgxpool.Pool) http.Handler {
 	mux.HandleFunc("POST /v1/auth/login",auth.login)
 	mux.Handle("GET /v1/auth/me",auth.requireAuth(http.HandlerFunc(auth.me)))
 	mux.Handle("POST /v1/auth/logout",auth.requireAuth(http.HandlerFunc(auth.logout)))
+	economy := economyHandler{db:db}
+	mux.Handle("GET /v1/wallet",auth.requireAuth(http.HandlerFunc(economy.wallet)))
+	mux.HandleFunc("GET /v1/gifts",economy.listGifts)
+	mux.Handle("POST /v1/gifts/{giftID}/purchase",auth.requireAuth(http.HandlerFunc(economy.purchaseGift)))
+	mux.Handle("POST /v1/admin/wallet/adjust",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.adjustWallet))))
+	mux.Handle("POST /v1/admin/gifts",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.createGift))))
 	return securityHeaders(mux)
 }
 
