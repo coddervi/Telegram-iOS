@@ -31,7 +31,7 @@ func (h economyHandler) adjustWallet(w http.ResponseWriter,r *http.Request) {
 	var req adjustWalletRequest
 	if err:=decodeJSON(r,&req);err!=nil { writeError(w,http.StatusBadRequest,"invalid_json");return }
 	req.Reason=strings.TrimSpace(req.Reason)
-	if req.Amount==0||req.Reason==""||len(req.Reason)>32 { writeError(w,http.StatusBadRequest,"invalid_adjustment");return }
+	if req.Amount<=0||req.Reason==""||len(req.Reason)>32 { writeError(w,http.StatusBadRequest,"stars_amount_must_be_positive");return }
 	key:=strings.TrimSpace(r.Header.Get("Idempotency-Key"));if key==""||len(key)>128 { writeError(w,http.StatusBadRequest,"idempotency_key_required");return }
 	actor,_:=r.Context().Value(userIDKey).(string)
 	tx,err:=h.db.Begin(r.Context());if err!=nil { writeError(w,http.StatusInternalServerError,"database_error");return };defer tx.Rollback(r.Context())
