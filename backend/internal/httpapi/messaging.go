@@ -30,7 +30,9 @@ func (h messagingHandler) createConversation(w http.ResponseWriter,r *http.Reque
 	if _,err=tx.Exec(r.Context(),`INSERT INTO conversation_members(conversation_id,user_id,member_role) VALUES($1,$2,'owner')`,c.ID,creator);err!=nil { writeError(w,http.StatusInternalServerError,"conversation_create_failed");return }
 	for _,memberID:=range req.MemberIDs {
 		memberID=strings.TrimSpace(memberID);if memberID==""||memberID==creator { continue }
-		if _,err=tx.Exec(r.Context(),`INSERT INTO conversation_members(conversation_id,user_id,member_role) SELECT $1,id,'member' FROM users WHERE id=$2 AND is_active=TRUE ON CONFLICT DO NOTHING`,c.ID,memberID);err!=nil { writeError(w,http.StatusBadRequest,"invalid_member");return }
+		var active bool
+		if err=tx.QueryRow(r.Context(),"SELECT is_active FROM users WHERE id=$1",memberID).Scan(&active);err!=nil||!active { writeError(w,http.StatusBadRequest,"invalid_member");return }
+		if _,err=tx.Exec(r.Context(),`INSERT INTO conversation_members(conversation_id,user_id,member_role) VALUES($1,$2,'member') ON CONFLICT DO NOTHING`,c.ID,memberID);err!=nil { writeError(w,http.StatusBadRequest,"invalid_member");return }
 	}
 	if kind=="direct" {
 		var count int
