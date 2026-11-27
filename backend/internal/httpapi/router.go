@@ -33,6 +33,9 @@ func NewRouter(db *pgxpool.Pool) http.Handler {
 	mux.Handle("GET /v1/wallet",auth.requireAuth(http.HandlerFunc(economy.wallet)))
 	mux.HandleFunc("GET /v1/gifts",economy.listGifts)
 	mux.Handle("POST /v1/gifts/{giftID}/purchase",auth.requireAuth(http.HandlerFunc(economy.purchaseGift)))
+	mux.Handle("GET /v1/gifts/inventory",auth.requireAuth(http.HandlerFunc(economy.inventory)))
+	mux.Handle("POST /v1/gifts/ownership/{ownershipID}/transfer",auth.requireAuth(http.HandlerFunc(economy.transferGift)))
+	mux.Handle("POST /v1/gifts/ownership/{ownershipID}/upgrade",auth.requireAuth(http.HandlerFunc(economy.upgradeGift)))
 	mux.Handle("POST /v1/admin/wallet/adjust",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.adjustWallet))))
 	mux.Handle("POST /v1/admin/gifts",auth.requireAuth(economy.adminOnly(http.HandlerFunc(economy.createGift))))
 	messaging := messagingHandler{db:db}
