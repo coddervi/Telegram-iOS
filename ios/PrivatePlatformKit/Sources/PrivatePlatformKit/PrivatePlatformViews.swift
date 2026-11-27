@@ -116,6 +116,13 @@ public final class PrivatePlatformStore: ObservableObject {
             await refresh()
         } catch { errorMessage = error.localizedDescription }
     }
+
+    public func adminIssueGift(giftID: String, userID: String) async {
+        do {
+            _ = try await client.issueGift(giftID: giftID, userID: userID)
+            await refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
 }
 
 public struct PrivatePlatformRootView: View {
@@ -437,6 +444,8 @@ private struct PrivatePlatformAdminView: View {
     @State private var upgradeCost = "100"
     @State private var maxLevel = "5"
     @State private var maxSupply = ""
+    @State private var issueGiftID = ""
+    @State private var issueUserID = ""
 
     var body: some View {
         Form {
@@ -453,6 +462,18 @@ private struct PrivatePlatformAdminView: View {
                     Task { await store.adminAdjustStars(userID: targetUserID, amount: value, reason: reason, note: note) }
                 }
                 .disabled(Int64(amount) == nil || targetUserID.isEmpty || Int64(amount) == 0)
+            }
+            Section("Issue gift to user") {
+                TextField("Gift ID", text: $issueGiftID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("Recipient user ID", text: $issueUserID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Issue gift") {
+                    Task { await store.adminIssueGift(giftID: issueGiftID, userID: issueUserID) }
+                }
+                .disabled(issueGiftID.isEmpty || issueUserID.isEmpty)
             }
             Section("Create gift") {
                 TextField("Gift code", text: $giftCode)
