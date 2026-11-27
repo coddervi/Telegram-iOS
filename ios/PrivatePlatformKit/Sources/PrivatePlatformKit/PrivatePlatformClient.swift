@@ -116,7 +116,7 @@ public struct GiftInventoryItem: Codable, Sendable, Identifiable {
     }
 }
 
-public struct GiftPurchaseResult: Codable, Sendable {
+public struct UploadedMedia: Decodable, Sendable {\n    public let id: String\n    public let contentType: String\n    public let sizeBytes: Int64\n    enum CodingKeys: String, CodingKey { case id; case contentType = "content_type"; case sizeBytes = "size_bytes" }\n}\n\npublic struct GiftPurchaseResult: Codable, Sendable {
     public let giftID: String
     public let serialNumber: Int64
     public let level: Int
@@ -283,6 +283,36 @@ public actor PrivatePlatformClient {
         var payload: [String: Any] = ["body": body]
         if let replyTo { payload["reply_to"] = replyTo }
         return try await request("POST", path: "/v1/conversations/\(conversationID)/messages", body: payload)
+    }
+
+    public func uploadMedia(data: Data, fileName: String = "upload", mimeType: String = "application/octet-stream") async throws -> UploadedMedia {
+        guard let url = URL(string: "/v1/media", relativeTo: baseURL)?.absoluteURL else {
+            throw PrivatePlatformError.invalidBaseURL
+        }
+        guard let token = try tokenStore.read(), !token.isEmpty else {
+            throw PrivatePlatformError.missingToken
+        }
+        let boundary = "PrivatePlatform-\(UUID().uuidString)"
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        var body = Data()
+        body.append(Data("--\(boundary)\\r\\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"upload\"\\r\\n".utf8))
+        body.append(Data("Content-Type: \(mimeType)\\r\\n\\r\\n".utf8))
+        body.append(data)
+        body.append(Data("\\r\\n--\(boundary)--\\r\\n".utf8))
+        request.httpBody = body
+        let (responseData, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw PrivatePlatformError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = (try? JSONSerialization.jsonObject(with: responseData)) as? [String: String]
+            throw PrivatePlatformError.httpStatus(http.statusCode, payload?["error"] ?? "unknown_error")
+        }
+        do { return try decoder.decode(UploadedMedia.self, from: responseData) }
+        catch { throw PrivatePlatformError.invalidResponse }
     }
 
     public func wallet() async throws -> WalletSnapshot {
