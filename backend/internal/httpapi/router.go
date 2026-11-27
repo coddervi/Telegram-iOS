@@ -14,7 +14,7 @@ type healthResponse struct {
 	Time string `json:"time"`
 }
 
-func NewRouter(db *pgxpool.Pool) http.Handler {
+func NewRouter(db *pgxpool.Pool, mediaDir string) http.Handler {
 	mux := http.NewServeMux()
 	auth := authHandler{db:db}
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +46,9 @@ func NewRouter(db *pgxpool.Pool) http.Handler {
 	mux.Handle("GET /v1/conversations",auth.requireAuth(http.HandlerFunc(messaging.listConversations)))
 	mux.Handle("GET /v1/conversations/{conversationID}/messages",auth.requireAuth(http.HandlerFunc(messaging.listMessages)))
 	mux.Handle("POST /v1/conversations/{conversationID}/messages",auth.requireAuth(http.HandlerFunc(messaging.sendMessage)))
+	media := mediaHandler{db:db,root:mediaDir}
+	mux.Handle("POST /v1/media",auth.requireAuth(http.HandlerFunc(media.upload)))
+	mux.Handle("GET /v1/media/{mediaID}",auth.requireAuth(http.HandlerFunc(media.download)))
 	return securityHeaders(mux)
 }
 
