@@ -23,9 +23,9 @@ func (h registrationHandler) requestCode(w http.ResponseWriter,r *http.Request) 
  req.Number=strings.ToUpper(strings.TrimSpace(req.Number)); req.Username=strings.TrimSpace(req.Username); req.DisplayName=strings.TrimSpace(req.DisplayName)
  if !usernamePattern.MatchString(req.Username)||len(req.Password)<10||len(req.Password)>72 {writeError(w,400,"invalid_registration_details");return}
  if req.DisplayName=="" {req.DisplayName=req.Username}; if len(req.DisplayName)>64 {writeError(w,400,"display_name_too_long");return}
- var id string; var chatID int64; var linked *string
- err:=h.db.QueryRow(r.Context(),"SELECT id::text,telegram_chat_id,linked_user_id::text FROM platform_numbers WHERE number=$1",req.Number).Scan(&id,&chatID,&linked)
- if err!=nil||linked!=nil {writeError(w,400,"invalid_or_used_platform_number");return}
+ var id string; var chatID int64; var linked bool
+ err:=h.db.QueryRow(r.Context(),"SELECT id::text,telegram_chat_id,linked_user_id IS NOT NULL FROM platform_numbers WHERE number=$1",req.Number).Scan(&id,&chatID,&linked)
+ if err!=nil||linked {writeError(w,400,"invalid_or_used_platform_number");return}
  var last time.Time
  err=h.db.QueryRow(r.Context(),"SELECT requested_at FROM registration_codes WHERE number_id=$1",id).Scan(&last)
  if err==nil && time.Since(last)<time.Minute {writeError(w,429,"code_cooldown");return}
@@ -44,7 +44,7 @@ func (h registrationHandler) verifyCode(w http.ResponseWriter,r *http.Request) {
  var id,username,display,passwordHash string;var stored []byte;var expires time.Time;var attempts int
  err=tx.QueryRow(r.Context(),`SELECT p.id::text,c.username,c.display_name,c.password_hash,c.code_hash,c.expires_at,c.attempts FROM platform_numbers p JOIN registration_codes c ON c.number_id=p.id WHERE p.number=$1 AND p.linked_user_id IS NULL FOR UPDATE OF p,c`,req.Number).Scan(&id,&username,&display,&passwordHash,&stored,&expires,&attempts)
  if err!=nil||time.Now().After(expires)||attempts>=5 {writeError(w,400,"code_expired_or_invalid");return}
- sum:=sha256.Sum256([]byte(req.Code));if len(req.Code)!=6||subtle.ConstantTimeCompare(sum[:],stored)!=1{_,_=tx.Exec(r.Context(),"UPDATE registration_codes SET attempts=attempts+1 WHERE number_id=$1",id);writeError(w,400,"wrong_code");return}
+ sum:=sha256.Sum256([]byte(req.Code));if len(req.Code)!=6||subtle.ConstantTimeCompare(sum[:],stored)!=1{_,_=tx.Exec(r.Context(),"UPDATE registration_codes SET attempts=attempts+1 WHERE number_id=$1",id);_ = tx.Commit(r.Context());writeError(w,400,"wrong_code");return}
  var user userResponse
  err=tx.QueryRow(r.Context(),`INSERT INTO users(username,password_hash,display_name) VALUES($1,$2,$3) RETURNING id::text,username,display_name,role`,username,passwordHash,display).Scan(&user.ID,&user.Username,&user.DisplayName,&user.Role)
  if err!=nil{if strings.Contains(err.Error(),"unique"){writeError(w,409,"username_taken")}else{writeError(w,500,"database_error")};return}
