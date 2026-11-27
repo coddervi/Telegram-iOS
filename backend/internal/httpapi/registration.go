@@ -4,23 +4,17 @@ import (
  "crypto/rand"
  "crypto/sha256"
  "crypto/subtle"
- "encoding/hex"
+ "fmt"
  "net/http"
- "regexp"
  "strings"
  "time"
 
- "github.com/jackc/pgx/v5"
  "github.com/jackc/pgx/v5/pgxpool"
  "golang.org/x/crypto/bcrypt"
 )
 
 type registrationHandler struct { db *pgxpool.Pool; bot telegramBotHandler }
-type requestCodeRequest struct { Number,Username,Password,DisplayName string }
-func (r *requestCodeRequest) UnmarshalJSON(b []byte) error {
- var v struct { Number string `json:"number"`; Username string `json:"username"`; Password string `json:"password"`; DisplayName string `json:"display_name"` }
- if err:=decodeBytes(b,&v); err!=nil{return err}; r.Number=v.Number;r.Username=v.Username;r.Password=v.Password;r.DisplayName=v.DisplayName;return nil
-}
+type requestCodeRequest struct { Number string `json:"number"`; Username string `json:"username"`; Password string `json:"password"`; DisplayName string `json:"display_name"` }
 type verifyCodeRequest struct { Number string `json:"number"`; Code string `json:"code"` }
 
 func (h registrationHandler) requestCode(w http.ResponseWriter,r *http.Request) {
@@ -37,7 +31,7 @@ func (h registrationHandler) requestCode(w http.ResponseWriter,r *http.Request) 
  if err==nil && time.Since(last)<time.Minute {writeError(w,429,"code_cooldown");return}
  hash,err:=bcrypt.GenerateFromPassword([]byte(req.Password),bcrypt.DefaultCost);if err!=nil{writeError(w,500,"password_hash_failed");return}
  raw:=make([]byte,4);if _,err=rand.Read(raw);err!=nil{writeError(w,500,"code_generation_failed");return}
- code:=int(raw[0])<<24|int(raw[1])<<16|int(raw[2])<<8|int(raw[3]); code%=1000000; codeText:=fmtCode(code); sum:=sha256.Sum256([]byte(codeText))
+ n:=uint32(raw[0])<<24|uint32(raw[1])<<16|uint32(raw[2])<<8|uint32(raw[3]); codeText:=fmt.Sprintf("%06d",n%1000000); sum:=sha256.Sum256([]byte(codeText))
  _,err=h.db.Exec(r.Context(),`INSERT INTO registration_codes(number_id,username,display_name,password_hash,code_hash,expires_at,requested_at,attempts) VALUES($1,$2,$3,$4,$5,now()+interval '5 minutes',now(),0) ON CONFLICT(number_id) DO UPDATE SET username=EXCLUDED.username,display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash,code_hash=EXCLUDED.code_hash,expires_at=EXCLUDED.expires_at,requested_at=now(),attempts=0`,id,req.Username,req.DisplayName,string(hash),sum[:])
  if err!=nil{writeError(w,500,"code_store_failed");return}
  if err=h.bot.send(r,chatID,"Код регистрации Private Platform: "+codeText+"\n\nДействует 5 минут. Не сообщайте его другим.");err!=nil{writeError(w,502,"telegram_delivery_failed");return}
@@ -62,7 +56,3 @@ func (h registrationHandler) verifyCode(w http.ResponseWriter,r *http.Request) {
  if err=tx.Commit(r.Context());err!=nil{writeError(w,500,"database_error");return}
  writeJSON(w,201,authResponse{Token:token,ExpiresAt:expiresAt,User:user})
 }
-func fmtCode(n int)string{return fmt.Sprintf("%06d",n)}
-var _ = regexp.MustCompile
-var _ = hex.EncodeToString
-var _ = pgx.ErrNoRows
