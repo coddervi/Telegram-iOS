@@ -21,6 +21,14 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  media-init:
+    image: alpine:3.21
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /data/media && chown -R 10001:10001 /data/media"]
+    volumes:
+      - media_data:/data/media
+    restart: "no"
+
   api:
     build: .
     environment:
@@ -35,6 +43,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      media-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:
