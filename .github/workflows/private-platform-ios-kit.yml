@@ -19,6 +19,6 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Test Swift package
+      - name: Test iOS Swift package
         working-directory: ios/PrivatePlatformKit
-        run: swift test
+        run: xcodebuild test -scheme PrivatePlatformKit -destination "platform=iOS Simulator,name=iPhone 16"
