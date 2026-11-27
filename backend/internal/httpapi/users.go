@@ -13,7 +13,7 @@ func (h usersHandler) search(w http.ResponseWriter,r *http.Request) {
 	query:=strings.TrimSpace(r.URL.Query().Get("q"))
 	if len(query)<2||len(query)>64 { writeError(w,http.StatusBadRequest,"query_must_be_2_to_64_characters");return }
 	query=strings.NewReplacer("\\","\\\\","%","\\%","_","\\_").Replace(query)
-	rows,err:=h.db.Query(r.Context(),`SELECT id::text,username,display_name,bio FROM users WHERE is_active=TRUE AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\') ORDER BY username LIMIT 25`,"%"+query+"%")
+	rows,err:=h.db.Query(r.Context(),`SELECT id::text,username,display_name,bio FROM users WHERE is_active=TRUE AND (username ILIKE $1 ESCAPE E'\\' OR display_name ILIKE $1 ESCAPE E'\\') ORDER BY username LIMIT 25`,"%"+query+"%")
 	if err!=nil { writeError(w,http.StatusInternalServerError,"user_search_failed");return };defer rows.Close()
 	type result struct { ID string `json:"id"`; Username string `json:"username"`; DisplayName string `json:"display_name"`; Bio string `json:"bio"` }
 	users:=make([]result,0)
