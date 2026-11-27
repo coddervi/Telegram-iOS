@@ -315,6 +315,39 @@ public actor PrivatePlatformClient {
         )
     }
 
+    public func adjustStars(
+        userID: String,
+        amount: Int64,
+        reason: String,
+        note: String = "",
+        idempotencyKey: String = UUID().uuidString
+    ) async throws -> AdminWalletAdjustment {
+        try await request(
+            "POST", path: "/v1/admin/wallet/adjust",
+            body: ["user_id": userID, "amount": amount, "reason": reason, "note": note],
+            idempotencyKey: idempotencyKey
+        )
+    }
+
+    public func createGift(
+        code: String,
+        title: String,
+        description: String,
+        rarity: String,
+        priceStars: Int64,
+        upgradeCostStars: Int64,
+        maxLevel: Int,
+        maxSupply: Int64?
+    ) async throws -> PlatformGift {
+        var payload: [String: Any] = [
+            "code": code, "title": title, "description": description,
+            "rarity": rarity, "price_stars": priceStars,
+            "upgrade_cost_stars": upgradeCostStars, "max_level": maxLevel
+        ]
+        payload["max_supply"] = maxSupply
+        return try await request("POST", path: "/v1/admin/gifts", body: payload)
+    }
+
     private func request<Response: Decodable>(
         _ method: String,
         path: String,
@@ -361,7 +394,7 @@ private struct ConversationList: Decodable { let conversations: [PlatformConvers
 private struct MessageList: Decodable { let messages: [PlatformMessage] }
 private struct GiftList: Decodable { let gifts: [PlatformGift] }
 private struct GiftInventory: Decodable { let items: [GiftInventoryItem] }
-private struct UpgradeResponse: Decodable {
+public struct AdminWalletAdjustment: Decodable, Sendable {\n    public let userID: String\n    public let balance: Int64\n    enum CodingKeys: String, CodingKey { case balance; case userID = "user_id" }\n}\nprivate struct UpgradeResponse: Decodable {
     let ownershipID: String
     let level: Int
     let upgradeCost: Int64
