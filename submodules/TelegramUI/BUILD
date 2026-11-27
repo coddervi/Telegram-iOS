@@ -597,6 +597,7 @@ swift_library(
         "//submodules/WalletContext",
         "//submodules/PasscodeCore",
         "//submodules/MTProtoRustEngine:MTProtoRustEngine",
+        "//ios/PrivatePlatformKit:PrivatePlatformKit",
     ],
     visibility = [
         "//visibility:public",
