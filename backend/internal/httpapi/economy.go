@@ -167,3 +167,31 @@ func (h economyHandler) upgradeGift(w http.ResponseWriter,r *http.Request) {
 	if err=tx.Commit(ctx);err!=nil {writeError(w,http.StatusInternalServerError,"upgrade_failed");return}
 	writeJSON(w,http.StatusOK,map[string]any{"ownership_id":ownershipID,"level":newLevel,"upgrade_cost":cost,"balance":newBalance})
 }
+
+
+type issueGiftRequest struct {
+	GiftID string `json:"gift_id"`
+	UserID string `json:"user_id"`
+}
+
+func (h economyHandler) adminIssueGift(w http.ResponseWriter,r *http.Request) {
+	var req issueGiftRequest
+	if err:=decodeJSON(r,&req);err!=nil {writeError(w,http.StatusBadRequest,"invalid_json");return}
+	key:=strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if key==""||len(key)>128 {writeError(w,http.StatusBadRequest,"idempotency_key_required");return}
+	actor,_:=r.Context().Value(userIDKey).(string);ctx:=r.Context()
+	tx,err:=h.db.Begin(ctx);if err!=nil {writeError(w,http.StatusInternalServerError,"database_error");return};defer tx.Rollback(ctx)
+	var issued int64;var maxSupply *int64
+	if err=tx.QueryRow(ctx,`SELECT issued_count,max_supply FROM gift_definitions WHERE id=$1 AND is_active=TRUE FOR UPDATE`,req.GiftID).Scan(&issued,&maxSupply);err!=nil {writeError(w,http.StatusNotFound,"gift_not_found");return}
+	if maxSupply!=nil&&issued>=*maxSupply {writeError(w,http.StatusConflict,"gift_sold_out");return}
+	var active bool
+	if err=tx.QueryRow(ctx,"SELECT is_active FROM users WHERE id=$1",req.UserID).Scan(&active);err!=nil||!active {writeError(w,http.StatusNotFound,"user_not_found");return}
+	var serial int64
+	if err=tx.QueryRow(ctx,"UPDATE gift_definitions SET issued_count=issued_count+1 WHERE id=$1 RETURNING issued_count",req.GiftID).Scan(&serial);err!=nil {writeError(w,http.StatusInternalServerError,"gift_issue_failed");return}
+	var ownershipID string
+	if err=tx.QueryRow(ctx,`INSERT INTO gift_ownership(gift_definition_id,owner_id,serial_number,purchase_key) VALUES($1,$2,$3,$4) RETURNING id::text`,req.GiftID,req.UserID,serial,key).Scan(&ownershipID);err!=nil {writeError(w,http.StatusConflict,"duplicate_or_invalid_issue");return}
+	if _,err=tx.Exec(ctx,`INSERT INTO gift_events(gift_ownership_id,actor_id,event_type,idempotency_key,details) VALUES($1,$2,'issued',$3,jsonb_build_object('serial_number',$4,'issued_by_admin',true))`,ownershipID,actor,key,serial);err!=nil {writeError(w,http.StatusInternalServerError,"gift_issue_failed");return}
+	if _,err=tx.Exec(ctx,`INSERT INTO admin_audit_events(actor_id,action,target_user_id,details) VALUES($1,'gift.issue',$2,jsonb_build_object('gift_id',$3,'ownership_id',$4,'serial_number',$5))`,actor,req.UserID,req.GiftID,ownershipID,serial);err!=nil {writeError(w,http.StatusInternalServerError,"audit_failed");return}
+	if err=tx.Commit(ctx);err!=nil {writeError(w,http.StatusInternalServerError,"gift_issue_failed");return}
+	writeJSON(w,http.StatusCreated,map[string]any{"ownership_id":ownershipID,"gift_id":req.GiftID,"user_id":req.UserID,"serial_number":serial,"level":1})
+}
