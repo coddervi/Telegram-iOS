@@ -27,8 +27,11 @@ services:
       HTTP_ADDR: :8080
       APP_ENV: production
       DATABASE_URL: postgres://private_platform:${POSTGRES_PASSWORD}@postgres:5432/private_platform?sslmode=disable
+      MEDIA_DIR: /data/media
     ports:
       - "8080:8080"
+    volumes:
+      - media_data:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,3 +40,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  media_data:
