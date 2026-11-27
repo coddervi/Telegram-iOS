@@ -9,6 +9,7 @@ type Config struct {
 	HTTPAddr string
 	DatabaseURL string
 	Environment string
+	MediaDir string
 }
 
 func Load() (Config, error) {
@@ -16,6 +17,7 @@ func Load() (Config, error) {
 		HTTPAddr: env("HTTP_ADDR", ":8080"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		Environment: env("APP_ENV", "development"),
+		MediaDir: env("MEDIA_DIR", "./data/media"),
 	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
