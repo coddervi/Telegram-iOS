@@ -113,7 +113,7 @@ func (h authHandler) requireAuth(next http.Handler) http.Handler {
 		if raw == "" { writeError(w,http.StatusUnauthorized,"authentication_required"); return }
 		sum := sha256.Sum256([]byte(raw))
 		var userID string
-		err := h.db.QueryRow(r.Context(), `SELECT user_id::text FROM sessions WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`,sum[:]).Scan(&userID)
+		err := h.db.QueryRow(r.Context(), `SELECT s.user_id::text FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=TRUE`,sum[:]).Scan(&userID)
 		if err != nil { writeError(w,http.StatusUnauthorized,"invalid_or_expired_session"); return }
 		next.ServeHTTP(w,r.WithContext(context.WithValue(r.Context(),userIDKey,userID)))
 	})
