@@ -203,15 +203,15 @@ private struct PrivatePlatformChatsView: View {
             }
             .overlay {
                 if store.conversations.isEmpty {
-                    ContentUnavailableView("No conversations", systemImage: "bubble.left.and.bubble.right", description: Text("Start a private conversation."))
+                    VStack(spacing: 8) { Image(systemName: "bubble.left.and.bubble.right").font(.largeTitle); Text("No conversations").font(.headline); Text("Start a private conversation.").foregroundStyle(.secondary) }
                 }
             }
             .navigationTitle("Chats")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showingSearch = true } label: { Image(systemName: "square.and.pencil") }
                 }
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise") }
                 }
             }
@@ -243,7 +243,7 @@ private struct PrivatePlatformUserSearchView: View {
                 }
             }
             .searchable(text: $query, prompt: "Search by username")
-            .onChange(of: query) { _, value in Task { await store.searchUsers(value) } }
+            .onChange(of: query) { value in Task { await store.searchUsers(value) } }
             .navigationTitle("New chat")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
         }
