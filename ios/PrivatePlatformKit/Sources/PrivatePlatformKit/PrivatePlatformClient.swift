@@ -42,6 +42,7 @@ public struct PlatformMessage: Codable, Sendable, Identifiable {
     public let senderID: String
     public let body: String
     public let replyTo: String?
+    public let mediaIDs: [String]
     public let createdAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -49,6 +50,7 @@ public struct PlatformMessage: Codable, Sendable, Identifiable {
         case conversationID = "conversation_id"
         case senderID = "sender_id"
         case replyTo = "reply_to"
+        case mediaIDs = "media_ids"
         case createdAt = "created_at"
     }
 }
