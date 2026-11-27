@@ -18,6 +18,7 @@ import PasswordSetupUI
 import InstantPageCache
 import WalletContext
 import UndoUI
+import PrivatePlatformKit
 
 extension PeerInfoScreenNode {
     func openSettings(section: PeerInfoSettingsSection) {
@@ -303,6 +304,14 @@ extension PeerInfoScreenNode {
         case .ton:
             if let tonContext = self.controller?.tonContext {
                 push(self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: tonContext))
+            }
+        case .privatePlatform:
+            Task { @MainActor [weak self] in
+                guard let self, let baseURL = URL(string: "http://192.168.1.74:8080") else {
+                    return
+                }
+                let platformController = makePrivatePlatformViewController(baseURL: baseURL)
+                self.controller?.present(platformController, animated: true)
             }
         case .wallet:
             guard WalletConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 }).isAvailable else {

@@ -152,6 +152,9 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         items[.myProfile]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_MyProfile, icon: PresentationResourcesSettings.myProfile, action: {
             interaction.openSettings(.profile)
         }))
+        items[.myProfile]!.append(PeerInfoScreenDisclosureItem(id: 1, text: "XGRAM", icon: UIImage(systemName: "star.circle"), action: {
+            interaction.openSettings(.privatePlatform)
+        }))
         
         if WalletConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 }).isAvailable {
             let balanceText: NSAttributedString

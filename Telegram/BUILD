@@ -400,6 +400,7 @@ swift_library(
         ":GeneratedPresentationStrings/Resources/PresentationStrings.data",
     ],
     deps = [
+        "//ios/PrivatePlatformKit:PrivatePlatformKit",
         "//submodules/TelegramUI:TelegramUI",
         "//third-party/boringssl:crypto",
     ],
@@ -641,7 +642,7 @@ plist_fragment(
     template =
     """
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>XGRAM</string>
     """
 )
 
@@ -1696,7 +1697,7 @@ plist_fragment(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>XGRAM</string>
     <key>CFBundleIdentifier</key>
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
@@ -1750,6 +1751,8 @@ plist_fragment(
     </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>XGRAM connects to your private platform server on your local network.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
