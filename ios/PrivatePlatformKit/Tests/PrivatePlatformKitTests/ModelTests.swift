@@ -28,4 +28,18 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(gift.priceStars, 50)
         XCTAssertEqual(gift.maxLevel, 5)
     }
+    func testLocalDevelopmentEndpointUsesLANAddress() {
+        XCTAssertEqual(
+            PrivatePlatformConfiguration.localDevelopmentBaseURL.absoluteString,
+            "http://192.168.1.74:8080"
+        )
+    }
+
+    func testHealthResponseDecodesBackendPayload() throws {
+        let data = Data(#"{"status":"ok","service":"private-platform-api","time":"2026-11-27T18:13:33Z"}"#.utf8)
+        let health = try JSONDecoder().decode(PlatformHealth.self, from: data)
+        XCTAssertEqual(health.status, "ok")
+        XCTAssertEqual(health.service, "private-platform-api")
+    }
+
 }
