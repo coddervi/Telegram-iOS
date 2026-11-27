@@ -36,6 +36,6 @@ Session tokens are persisted in the iOS Keychain. Do not ship a development HTTP
 
 The client currently wraps authentication, user search, conversations, text messages, wallet history, gift catalog, purchase, inventory, transfer and upgrade endpoints.
 
-This package is a native integration layer and starter UI. It is not yet wired into the upstream Telegram application's account/session and messaging navigation flows; the host app must explicitly present `PrivatePlatformRootView` (or replace its current root flow) to make this independent platform the active client. The private platform API is separate from Telegram's MTProto service.
+This package is a native integration layer and starter UI. In the `private-platform-foundation` branch it is wired into the TelegramUI Bazel target and presented from the app's scene attach path as the launch UI, replacing the Telegram entry screen. The private platform API is separate from Telegram's MTProto service. The integration has not been build-validated yet.
 
 The local HTTP endpoint is for LAN development only. Do not ship it in a public release; use HTTPS in production.
