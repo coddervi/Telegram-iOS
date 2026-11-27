@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "PrivatePlatformKit",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v16)],
     products: [
         .library(name: "PrivatePlatformKit", targets: ["PrivatePlatformKit"])
     ],
