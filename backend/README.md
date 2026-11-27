@@ -35,7 +35,9 @@ All API responses are JSON unless the response is `204 No Content`.
 - `GET /v1/users/search?q=...` — search active users by username/display name
 - `GET /v1/conversations` — list memberships
 - `GET /v1/conversations/{conversationID}/messages` — read messages
-- `POST /v1/conversations/{conversationID}/messages` — send a message
+- `POST /v1/conversations/{conversationID}/messages` — send a text message and/or attach uploaded media
+- `POST /v1/media` — authenticated multipart upload (25 MB maximum)
+- `GET /v1/media/{mediaID}` — download media as its owner or a member of a conversation containing it
 - `GET /v1/wallet` — internal Stars balance and ledger history
 - `GET /v1/gifts` — active gift catalog
 - `POST /v1/gifts/{giftID}/purchase` — purchase/claim a gift (requires `Idempotency-Key`)
