@@ -103,9 +103,11 @@ CREATE TABLE gift_ownership (
     gift_definition_id UUID NOT NULL REFERENCES gift_definitions(id),
     owner_id UUID NOT NULL REFERENCES users(id),
     serial_number BIGINT NOT NULL,
+    purchase_key VARCHAR(128) NOT NULL,
     level INTEGER NOT NULL DEFAULT 1 CHECK (level > 0),
     acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(gift_definition_id,serial_number)
+    UNIQUE(gift_definition_id,serial_number),
+    UNIQUE(owner_id,purchase_key)
 );
 CREATE INDEX gift_ownership_owner_idx ON gift_ownership(owner_id,acquired_at DESC);
 CREATE TABLE gift_events (
