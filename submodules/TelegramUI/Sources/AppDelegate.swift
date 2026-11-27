@@ -1,4 +1,6 @@
 import UIKit
+import SwiftUI
+import PrivatePlatformKit
 import SwiftSignalKit
 import Display
 import TelegramCore
@@ -1807,6 +1809,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         if let window = self.window, let rootViewController = window.rootViewController {
             window.rootViewController = nil
             window.rootViewController = rootViewController
+        }
+
+        // PrivatePlatform: replace Telegram's entry UI with the standalone platform client.
+        if let window = self.window {
+            let api = PrivatePlatformClient(baseURL: PrivatePlatformConfiguration.localDevelopmentBaseURL)
+            let store = PrivatePlatformStore(client: api)
+            window.rootViewController = UIHostingController(rootView: PrivatePlatformRootView(store: store))
         }
 
         self.mainWindow?.updateDeviceMetrics()
