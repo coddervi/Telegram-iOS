@@ -311,11 +311,11 @@ public actor PrivatePlatformClient {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         var body = Data()
-        body.append(Data("--\(boundary)\\r\\n".utf8))
-        body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"upload\"\\r\\n".utf8))
-        body.append(Data("Content-Type: \(mimeType)\\r\\n\\r\\n".utf8))
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"upload\"\r\n".utf8))
+        body.append(Data("Content-Type: \(mimeType)\r\n\r\n".utf8))
         body.append(data)
-        body.append(Data("\\r\\n--\(boundary)--\\r\\n".utf8))
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
         request.httpBody = body
         let (responseData, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw PrivatePlatformError.invalidResponse }
