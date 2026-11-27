@@ -32,12 +32,16 @@ All API responses are JSON unless the response is `204 No Content`.
 - `GET /v1/auth/me` — current account (Bearer token)
 - `POST /v1/auth/logout` — revoke current session
 - `POST /v1/conversations` — create direct chat, group or channel
+- `GET /v1/users/search?q=...` — search active users by username/display name
 - `GET /v1/conversations` — list memberships
 - `GET /v1/conversations/{conversationID}/messages` — read messages
 - `POST /v1/conversations/{conversationID}/messages` — send a message
 - `GET /v1/wallet` — internal Stars balance and ledger history
 - `GET /v1/gifts` — active gift catalog
 - `POST /v1/gifts/{giftID}/purchase` — purchase/claim a gift (requires `Idempotency-Key`)
+- `GET /v1/gifts/inventory` — current user gift collection
+- `POST /v1/gifts/ownership/{ownershipID}/transfer` — transfer a gift to another user
+- `POST /v1/gifts/ownership/{ownershipID}/upgrade` — upgrade a gift level (server-configured cost)
 - `POST /v1/admin/wallet/adjust` — administrator credit/debit (requires `Idempotency-Key`)
 - `POST /v1/admin/gifts` — create a gift definition
 
