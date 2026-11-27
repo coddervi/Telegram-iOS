@@ -1,0 +1,24 @@
+name: Private platform iOS kit
+
+on:
+  push:
+    branches:
+      - private-platform-foundation
+    paths:
+      - "ios/PrivatePlatformKit/**"
+      - ".github/workflows/private-platform-ios-kit.yml"
+  pull_request:
+    paths:
+      - "ios/PrivatePlatformKit/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Swift package
+        working-directory: ios/PrivatePlatformKit
+        run: swift test
