@@ -327,6 +327,24 @@ public actor PrivatePlatformClient {
         catch { throw PrivatePlatformError.invalidResponse }
     }
 
+    public func downloadMedia(id: String) async throws -> Data {
+        guard let url = URL(string: "/v1/media/\\(id)", relativeTo: baseURL)?.absoluteURL else {
+            throw PrivatePlatformError.invalidBaseURL
+        }
+        guard let token = try tokenStore.read(), !token.isEmpty else {
+            throw PrivatePlatformError.missingToken
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \\(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw PrivatePlatformError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            throw PrivatePlatformError.httpStatus(http.statusCode, "media_download_failed")
+        }
+        return data
+    }
+
     public func wallet() async throws -> WalletSnapshot {
         try await request("GET", path: "/v1/wallet")
     }
