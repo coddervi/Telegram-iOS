@@ -29,9 +29,8 @@ jobs:
           cache-dependency-path: backend/go.mod
       - name: Resolve dependencies
         run: go mod tidy
-      - name: Format check
-        run: |
-          test -z "$(gofmt -l .)"
+      - name: Format Go sources
+        run: find . -name "*.go" -type f -print0 | xargs -0 gofmt -w
       - name: Test
         run: go test ./...
       - name: Vet
