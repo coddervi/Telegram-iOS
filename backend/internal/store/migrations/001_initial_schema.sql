@@ -92,6 +92,8 @@ CREATE TABLE gift_definitions (
     image_key TEXT,
     rarity VARCHAR(16) NOT NULL CHECK (rarity IN ('common','uncommon','rare','epic','legendary')),
     price_stars BIGINT NOT NULL CHECK (price_stars >= 0),
+    upgrade_cost_stars BIGINT NOT NULL DEFAULT 100 CHECK (upgrade_cost_stars >= 0),
+    max_level INTEGER NOT NULL DEFAULT 5 CHECK (max_level >= 1),
     max_supply BIGINT CHECK (max_supply IS NULL OR max_supply > 0),
     issued_count BIGINT NOT NULL DEFAULT 0 CHECK (issued_count >= 0),
     upgrade_group VARCHAR(48),
@@ -115,8 +117,10 @@ CREATE TABLE gift_events (
     gift_ownership_id UUID NOT NULL REFERENCES gift_ownership(id),
     actor_id UUID NOT NULL REFERENCES users(id),
     event_type VARCHAR(24) NOT NULL CHECK (event_type IN ('issued','transferred','upgraded','burned')),
+    idempotency_key VARCHAR(128),
     details JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(gift_ownership_id,idempotency_key)
 );
 CREATE TABLE admin_audit_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
